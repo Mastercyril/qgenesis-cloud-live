@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: qgenesis-cloud-live
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: BRIDGE_PORT
+        value: 8675
