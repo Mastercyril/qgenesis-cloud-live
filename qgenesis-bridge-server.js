@@ -7,6 +7,7 @@ const PORT = process.env.PORT || 5050;
 const HOST = '0.0.0.0';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY || '';
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const BRIDGE_PORT = process.env.BRIDGE_PORT || 8675;
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || '';
 
@@ -61,7 +62,7 @@ async function callPerplexity(prompt) {
     body: JSON.stringify({
       model,
       messages: [
-        { role: 'system', content: 'You are the retrieval layer for QGenesis Android bridge. Keep responses compact and operational.' },
+        { role: 'system', content: 'You are the AI layer for QGenesis. Keep responses compact and operational.' },
         { role: 'user', content: prompt }
       ]
     })
@@ -70,6 +71,35 @@ async function callPerplexity(prompt) {
   if (!response.ok) return { ok: false, provider: 'perplexity', status: response.status, error: json.error?.message || 'Perplexity request failed', raw: json };
   const text = json.choices?.[0]?.message?.content || 'No text returned.';
   return { ok: true, provider: 'perplexity', model, text, raw: json };
+}
+
+async function callGroq(prompt) {
+  if (!GROQ_API_KEY) return { ok: false, provider: 'groq', error: 'Missing GROQ_API_KEY' };
+  const model = 'llama3-8b-8192';
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + GROQ_API_KEY
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: 'You are the AI layer for QGenesis. Keep responses compact and operational.' },
+        { role: 'user', content: prompt }
+      ]
+    })
+  });
+  const json = await response.json();
+  if (!response.ok) return { ok: false, provider: 'groq', status: response.status, error: json.error?.message || `Groq request failed (HTTP ${response.status})`, raw: json };
+  const text = json.choices?.[0]?.message?.content || 'No text returned.';
+  return { ok: true, provider: 'groq', model, text, raw: json };
+}
+
+function callProvider(name, prompt) {
+  if (name === 'perplexity') return callPerplexity(prompt);
+  if (name === 'groq') return callGroq(prompt);
+  return callGemini(prompt);
 }
 
 const server = http.createServer(async (req, res) => {
@@ -91,7 +121,8 @@ const server = http.createServer(async (req, res) => {
       public_base_url: PUBLIC_BASE_URL,
       providers: {
         gemini: !!GEMINI_API_KEY,
-        perplexity: !!PERPLEXITY_API_KEY
+        perplexity: !!PERPLEXITY_API_KEY,
+        groq: !!GROQ_API_KEY
       },
       sessions: sessions.length,
       now: new Date().toISOString()
@@ -102,19 +133,21 @@ const server = http.createServer(async (req, res) => {
     const body = await readBody(req).catch(() => ({}));
     const prompt = body.prompt || 'Return a one-line status for QGenesis Android bridge.';
     const provider = body.provider || 'gemini';
-    const result = provider === 'perplexity' ? await callPerplexity(prompt) : await callGemini(prompt);
+    const result = provider === 'perplexity' ? await callPerplexity(prompt)
+      : provider === 'groq' ? await callGroq(prompt)
+      : await callGemini(prompt);
     return send(res, result.ok ? 200 : 500, result);
   }
 
   if (req.method === 'POST' && parsed.pathname === '/api/chat/route') {
     const body = await readBody(req).catch(() => ({}));
     const prompt = body.prompt || 'Summarize bridge state.';
-    const primary = body.primary || 'gemini';
-    const fallback = body.fallback || 'perplexity';
+    const primary = body.primary || 'groq';
+    const fallback = body.fallback || 'gemini';
 
-    let result = primary === 'perplexity' ? await callPerplexity(prompt) : await callGemini(prompt);
+    let result = await callProvider(primary, prompt);
     if (!result.ok && fallback && fallback !== primary) {
-      result = fallback === 'perplexity' ? await callPerplexity(prompt) : await callGemini(prompt);
+      result = await callProvider(fallback, prompt);
       result.fallback_used = true;
     }
 

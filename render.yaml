@@ -9,3 +9,5 @@ services:
         value: 22
       - key: BRIDGE_PORT
         value: 8675
+      - key: GROQ_API_KEY
+        sync: false
