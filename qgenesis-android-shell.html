@@ -11,6 +11,7 @@
       font-family: 'Segoe UI', system-ui, sans-serif;
       background: #0d0d0d;
       color: #e8e8e8;
+      height: 100vh;
       height: 100dvh;
       display: flex;
       flex-direction: column;
@@ -205,7 +206,7 @@
 </head>
 <body>
 
-<header>
+<header aria-label="QGenesis AI application header">
   <h1>⚡ QGenesis AI</h1>
   <span class="badge">Cloud Live</span>
 </header>
@@ -221,13 +222,21 @@
 </div>
 
 <div id="options">
-  <label>Primary: <select id="primary"><option value="gemini">Gemini</option><option value="perplexity">Perplexity</option></select></label>
-  <label>Fallback: <select id="fallback"><option value="perplexity">Perplexity</option><option value="gemini">Gemini</option></select></label>
+  <label for="primary">Primary:</label>
+  <select id="primary">
+    <option value="gemini">Gemini</option>
+    <option value="perplexity">Perplexity</option>
+  </select>
+  <label for="fallback">Fallback:</label>
+  <select id="fallback">
+    <option value="perplexity">Perplexity</option>
+    <option value="gemini">Gemini</option>
+  </select>
 </div>
 
 <div id="input-area">
-  <textarea id="prompt" placeholder="Ask QGenesis AI…" rows="1"></textarea>
-  <button id="send-btn">Send</button>
+  <textarea id="prompt" aria-label="Chat message input" placeholder="Ask QGenesis AI…" rows="1"></textarea>
+  <button id="send-btn" aria-label="Send message">Send</button>
 </div>
 
 <script>
