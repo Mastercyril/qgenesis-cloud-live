@@ -2,9 +2,12 @@
   "name": "qgenesis-cloud-live",
   "version": "1.0.0",
   "private": true,
-  "description": "QGenesis Android Cloud Shell",
+  "description": "QGenesis Android Cloud Shell - Node bridge for Gemini + Perplexity APIs",
   "main": "qgenesis-bridge-server.js",
   "scripts": {
     "start": "node qgenesis-bridge-server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
